@@ -13,6 +13,7 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
   const [medication, setMedication] = useState('');
   const [dosage, setDosage] = useState('');
   const [frequency, setFrequency] = useState('Once daily');
+  const [quantity, setQuantity] = useState('1');
   const [instructions, setInstructions] = useState('');
   const queryClient = useQueryClient();
 
@@ -40,6 +41,7 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
       queryClient.invalidateQueries({ queryKey: ['patientHistory', patient?.id] });
       setMedication('');
       setDosage('');
+      setQuantity('1');
       setInstructions('');
       alert("Prescription added successfully!");
       // Don't close so they can see it in history or write another
@@ -62,6 +64,7 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
       medicineName: medication,
       dosage: dosage,
       duration: frequency,
+      quantity: quantity,
       instructions: instructions
     });
   };
@@ -108,8 +111,8 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Dosage</label>
                     <input 
                       type="text" 
@@ -120,7 +123,7 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                   </div>
-                  <div>
+                  <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
                     <select 
                       value={frequency}
@@ -132,6 +135,17 @@ export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps
                       <option>Three times daily</option>
                       <option>As needed</option>
                     </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="1"
+                      value={quantity}
+                      onChange={e => setQuantity(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
                   </div>
                 </div>
 

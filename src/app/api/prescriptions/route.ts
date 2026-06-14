@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { appointmentId, medicineName, dosage, duration, instructions } = body;
+    const { appointmentId, medicineName, dosage, duration, quantity, instructions } = body;
 
     if (!appointmentId || !medicineName || !dosage || !duration) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
@@ -23,6 +23,7 @@ export async function POST(req: Request) {
       medicineName,
       dosage,
       duration,
+      quantity: quantity ? parseInt(quantity, 10) : 1,
       instructions,
       status: "Pending"
     }).returning();

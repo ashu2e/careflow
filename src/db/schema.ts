@@ -51,6 +51,7 @@ export const prescriptions = pgTable('prescriptions', {
   medicineName: text('medicine_name').notNull(),
   dosage: text('dosage').notNull(),
   duration: text('duration').notNull(),
+  quantity: integer('quantity').notNull().default(1),
   instructions: text('instructions'),
   status: text('status', { enum: ['Pending', 'Dispensed'] }).default('Pending').notNull(),
 });
@@ -141,3 +142,12 @@ export const labOrdersRelations = relations(labOrders, ({ one }) => ({
   patient: one(patients, { fields: [labOrders.patientId], references: [patients.id] }),
   doctor: one(doctors, { fields: [labOrders.doctorId], references: [doctors.id] }),
 }));
+
+export const inventory = pgTable('inventory', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  stock: integer('stock').notNull().default(0),
+  threshold: integer('threshold').notNull().default(100),
+  price: integer('price').notNull().default(0),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
