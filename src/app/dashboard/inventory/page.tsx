@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,12 @@ export default function InventoryPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
   if (!session || session.user.role !== "Pharmacist") {
     if (typeof window !== "undefined") {
@@ -30,6 +36,27 @@ export default function InventoryPage() {
       return res.json();
     }
   });
+
+  // Debounced search for patients
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        setSearchResults(data.results || []);
+      } catch (err) {
+        console.error("Search failed");
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const addMutation = useMutation({
     mutationFn: async (newItem: any) => {
@@ -64,6 +91,32 @@ export default function InventoryPage() {
     }
   });
 
+  const sellMutation = useMutation({
+    mutationFn: async (sellData: any) => {
+      const res = await fetch('/api/inventory/sell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sellData)
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to sell medicine');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      setIsSellModalOpen(false);
+      setSelectedItem(null);
+      setSelectedPatient(null);
+      setSearchQuery('');
+      alert("Sale successful! Bill generated.");
+    },
+    onError: (err: any) => {
+      alert(`Error: ${err.message}`);
+    }
+  });
+
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -83,6 +136,17 @@ export default function InventoryPage() {
       id: selectedItem.id,
       stock: formData.get('stock'),
       price: formData.get('price')
+    });
+  };
+
+  const handleSellSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedItem || !selectedPatient) return;
+    const formData = new FormData(e.currentTarget);
+    sellMutation.mutate({
+      inventoryId: selectedItem.id,
+      patientId: selectedPatient.id,
+      quantity: formData.get('quantity')
     });
   };
 
@@ -141,9 +205,15 @@ export default function InventoryPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button 
                         onClick={() => { setSelectedItem(item); setIsUpdateModalOpen(true); }}
-                        className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md border border-blue-100 transition-colors"
+                        className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md border border-blue-100 transition-colors mr-2"
                       >
                         Update / Restock
+                      </button>
+                      <button 
+                        onClick={() => { setSelectedItem(item); setIsSellModalOpen(true); }}
+                        className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md border border-green-100 transition-colors"
+                      >
+                        Sell
                       </button>
                     </td>
                   </tr>
@@ -225,6 +295,72 @@ export default function InventoryPage() {
                   <button type="button" onClick={() => setIsUpdateModalOpen(false)} className="text-gray-500 bg-white hover:bg-gray-100 border border-gray-200 px-4 py-2 rounded-md mr-2">Cancel</button>
                   <button type="submit" disabled={updateMutation.isPending} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md">
                     {updateMutation.isPending ? "Updating..." : "Update Inventory"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sell Modal */}
+      {isSellModalOpen && selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsSellModalOpen(false)}></div>
+          <div className="relative w-full max-w-md mx-auto z-50">
+            <div className="relative flex flex-col w-full bg-white border-0 rounded-2xl shadow-2xl outline-none focus:outline-none overflow-hidden">
+              <div className="flex items-center justify-between p-5 border-b border-solid border-gray-100 bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">Sell & Bill: {selectedItem.name}</h3>
+                <button onClick={() => setIsSellModalOpen(false)} className="text-gray-400 hover:text-gray-900"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleSellSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search Patient</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Type patient name..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" 
+                    />
+                    {isSearching && <div className="absolute right-3 top-2.5 text-xs text-gray-400">Searching...</div>}
+                    {searchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {searchResults.map(p => (
+                          <div 
+                            key={p.id} 
+                            onClick={() => {
+                              setSelectedPatient(p);
+                              setSearchResults([]);
+                              setSearchQuery('');
+                            }}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-800"
+                          >
+                            {p.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {selectedPatient && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-md text-sm text-blue-800 flex justify-between items-center">
+                      <span>Selected: <strong>{selectedPatient.name}</strong></span>
+                      <button type="button" onClick={() => setSelectedPatient(null)} className="text-blue-600 hover:text-blue-800"><X className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity to Sell</label>
+                  <input type="number" name="quantity" required min="1" max={selectedItem.stock} defaultValue="1" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
+                  <p className="text-xs text-gray-500 mt-1">Price per unit: ₹{selectedItem.price}</p>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button type="button" onClick={() => setIsSellModalOpen(false)} className="text-gray-500 bg-white hover:bg-gray-100 border border-gray-200 px-4 py-2 rounded-md mr-2">Cancel</button>
+                  <button type="submit" disabled={sellMutation.isPending || !selectedPatient} className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-md">
+                    {sellMutation.isPending ? "Processing..." : "Generate Bill"}
                   </button>
                 </div>
               </form>
