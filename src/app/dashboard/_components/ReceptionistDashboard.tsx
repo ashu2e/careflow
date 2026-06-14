@@ -3,10 +3,10 @@
 import { Calendar, UserPlus, Receipt } from "lucide-react";
 import Link from "next/link";
 
-export default function ReceptionistDashboard() {
+export default function ReceptionistDashboard({ userName }: { userName?: string }) {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Receptionist Portal</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Welcome, {userName}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">

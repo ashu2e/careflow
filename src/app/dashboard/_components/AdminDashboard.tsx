@@ -16,7 +16,7 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
-export default function AdminDashboard({ stats }: { stats?: any }) {
+export default function AdminDashboard({ stats, userName }: { stats?: any, userName?: string }) {
   if (!stats) return <div>Loading...</div>;
 
   const pieData = {
@@ -48,7 +48,7 @@ export default function AdminDashboard({ stats }: { stats?: any }) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Admin Portal</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Welcome, {userName}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">

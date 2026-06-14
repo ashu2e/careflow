@@ -3,10 +3,10 @@
 import { Calendar, FileText, Receipt } from "lucide-react";
 import Link from "next/link";
 
-export default function PatientDashboard({ patient, appointments }: { patient: any, appointments: any[] }) {
+export default function PatientDashboard({ patient, appointments, userName }: { patient: any, appointments: any[], userName?: string }) {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Welcome to your Patient Portal</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Welcome, {userName}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">

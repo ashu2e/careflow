@@ -41,7 +41,7 @@ export default async function DashboardPage() {
       }
     });
 
-    return <PatientDashboard patient={patientRecord} appointments={myAppointments} />;
+    return <PatientDashboard patient={patientRecord} appointments={myAppointments} userName={session.user.name} />;
   }
 
   if (role === "Doctor") {
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
       }
     });
 
-    return <DoctorDashboard doctor={doctorRecord} appointments={todayAppointments} />;
+    return <DoctorDashboard doctor={doctorRecord} appointments={todayAppointments} userName={session.user.name} />;
   }
 
   if (role === "Admin") {
@@ -87,15 +87,15 @@ export default async function DashboardPage() {
       }
     };
 
-    return <AdminDashboard stats={stats} />;
+    return <AdminDashboard stats={stats} userName={session.user.name} />;
   }
 
   if (role === "Receptionist") {
-    return <ReceptionistDashboard />;
+    return <ReceptionistDashboard userName={session.user.name} />;
   }
 
   if (role === "Pharmacist") {
-    return <PharmacistDashboard />;
+    return <PharmacistDashboard userName={session.user.name} />;
   }
 
   return (
