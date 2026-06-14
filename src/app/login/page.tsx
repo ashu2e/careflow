@@ -40,8 +40,9 @@ export default function LoginPage() {
           <Stethoscope className="h-12 w-12 text-blue-600" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to CareFlow
+          Sign in to CareFlow Portal
         </h2>
+        <p className="text-center text-sm text-gray-500 mt-1">For Patients and Staff</p>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{" "}
           <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">

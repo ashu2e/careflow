@@ -20,12 +20,15 @@ export default function Home() {
               <p className="text-lg text-gray-600 max-w-lg">
                 CareFlow HMS provides seamless digital healthcare experiences. Book appointments, access your medical records, and consult with top doctors easily.
               </p>
-              <div className="flex space-x-4 pt-4">
+              <div className="flex flex-wrap gap-4 pt-4">
                 <Link href="/register" className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium text-lg transition-colors">
                   Get Started
                 </Link>
                 <Link href="/login" className="bg-white text-blue-600 border border-blue-600 px-6 py-3 rounded-md hover:bg-blue-50 font-medium text-lg transition-colors">
                   Patient Login
+                </Link>
+                <Link href="/login" className="bg-slate-800 text-white px-6 py-3 rounded-md hover:bg-slate-700 font-medium text-lg transition-colors">
+                  Staff Portal
                 </Link>
               </div>
             </div>
