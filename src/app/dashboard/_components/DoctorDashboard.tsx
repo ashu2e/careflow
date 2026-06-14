@@ -1,46 +1,140 @@
 "use client";
 
-import { Calendar, Users } from "lucide-react";
-import Link from "next/link";
+import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { CheckInQueue } from './doctor/CheckInQueue';
+import { NextPatientCard } from './doctor/NextPatientCard';
+import { UpcomingAppointments } from './doctor/UpcomingAppointments';
+import { GlobalSearch } from './doctor/GlobalSearch';
+import { PendingTasksBadge } from './doctor/PendingTasksBadge';
+import { UnreadMessagesPreview } from './doctor/UnreadMessagesPreview';
+import { ActionButtons } from './doctor/ActionButtons';
+import { useDoctorShortcuts } from '@/hooks/useDoctorShortcuts';
+import { PatientQueueItem, QueueResponse } from '@/hooks/useRealtimeQueue';
 
 export default function DoctorDashboard({ doctor, appointments, userName }: { doctor: any, appointments: any[], userName?: string }) {
+  const [selectedPatient, setSelectedPatient] = useState<PatientQueueItem | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  // Handle optimistic UI updates for queue
+  const handleStartVisit = async (patientId: string) => {
+    setIsStarting(true);
+    
+    // Optimistic Update: remove patient from queue immediately
+    const previousQueue = queryClient.getQueryData<QueueResponse>(['doctorQueue']);
+    if (previousQueue) {
+      queryClient.setQueryData<QueueResponse>(['doctorQueue'], {
+        ...previousQueue,
+        patients: previousQueue.patients.filter(p => p.id !== patientId),
+        progress: {
+          ...previousQueue.progress,
+          seen: previousQueue.progress.seen + 1
+        }
+      });
+      setSelectedPatient(null);
+    }
+
+    try {
+      const res = await fetch('/api/consultations/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId })
+      });
+      if (!res.ok) throw new Error('Failed to start consultation');
+      console.log(`Successfully started visit with patient ${patientId}`);
+    } catch (error) {
+      console.error(error);
+      // Revert optimistic update on failure
+      if (previousQueue) {
+        queryClient.setQueryData(['doctorQueue'], previousQueue);
+      }
+      alert('Failed to start visit. Reverting...');
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  // Setup Keyboard Shortcuts
+  useDoctorShortcuts({
+    onEndConsultation: () => {
+      console.log("Ended consultation via shortcut");
+    },
+    onPrescribe: () => {
+      console.log("Opened prescription modal via shortcut");
+    },
+    onCloseModal: () => {
+      console.log("Closed modals via shortcut");
+    },
+    onSearchFocus: () => {
+      searchInputRef.current?.focus();
+    }
+  });
+
+  // Select the first patient in queue automatically if none is selected
+  useEffect(() => {
+    const queueData = queryClient.getQueryData<QueueResponse>(['doctorQueue']);
+    if (queueData && queueData.patients.length > 0 && !selectedPatient) {
+      setSelectedPatient(queueData.patients[0]);
+    }
+  }, [queryClient, selectedPatient]);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Welcome, {userName}</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center space-x-3 text-blue-600 mb-4">
-            <Calendar className="h-6 w-6" />
-            <h2 className="text-lg font-semibold text-gray-900">Today's Appointments</h2>
+    <div className="bg-gray-50 min-h-[calc(100vh-4rem)] p-6 rounded-xl">
+      {/* Header section with Global Search and Badges */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome, {userName || "Doctor"}</h1>
+          <p className="text-gray-500 text-sm mt-1">Have a great shift today.</p>
+        </div>
+        
+        <div className="flex items-center space-x-6">
+          <GlobalSearch inputRef={searchInputRef} />
+          <div className="flex items-center space-x-4 border-l border-gray-200 pl-6">
+            <PendingTasksBadge />
+            <UnreadMessagesPreview />
           </div>
-          <p className="text-3xl font-bold text-gray-900">{appointments.length}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Upcoming Consultations</h3>
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-12 gap-6">
+        
+        {/* Left Column: Check-in Queue */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col h-[600px]">
+          <CheckInQueue 
+            onSelectPatient={(patient) => setSelectedPatient(patient)} 
+          />
         </div>
-        <ul className="divide-y divide-gray-200">
-          {appointments.length === 0 ? (
-            <li className="px-6 py-4 text-gray-500">No appointments scheduled.</li>
-          ) : (
-            appointments.map((apt) => (
-              <li key={apt.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{apt.patient?.user?.fullName}</p>
-                  <p className="text-sm text-gray-500">{apt.date} at {apt.timeSlot}</p>
-                </div>
-                <div>
-                  <Link href={`/dashboard/consultation/${apt.id}`} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Start Consultation
-                  </Link>
-                </div>
-              </li>
-            ))
-          )}
-        </ul>
+
+        {/* Middle Column: Next Patient & Upcoming */}
+        <div className="col-span-12 lg:col-span-6 flex flex-col space-y-6 h-[600px]">
+          <div className="flex-1">
+            <NextPatientCard 
+              patient={selectedPatient} 
+              onStartVisit={handleStartVisit}
+              isStarting={isStarting}
+            />
+          </div>
+          <div className="shrink-0">
+            <UpcomingAppointments />
+          </div>
+        </div>
+
+        {/* Right Column: Actions */}
+        <div className="col-span-12 lg:col-span-2 flex flex-col space-y-6">
+          <ActionButtons 
+            onPrescribe={() => console.log('Prescribe modal opened')}
+            onOrderLab={() => console.log('Lab order modal opened')}
+            onEndShift={() => {
+              if(confirm("Are you sure you want to end your shift?")) {
+                console.log("Ended shift");
+              }
+            }}
+          />
+        </div>
+
       </div>
     </div>
   );
