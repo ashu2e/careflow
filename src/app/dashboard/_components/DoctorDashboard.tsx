@@ -24,7 +24,7 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
   const queryClient = useQueryClient();
 
   // Handle optimistic UI updates for queue
-  const handleStartVisit = async (patientId: string) => {
+  const handleStartVisit = async (patientId: string, appointmentId: string) => {
     setIsStarting(true);
     
     // Optimistic Update: remove patient from queue immediately
@@ -45,7 +45,7 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
       const res = await fetch('/api/consultations/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId })
+        body: JSON.stringify({ appointmentId })
       });
       if (!res.ok) throw new Error('Failed to start consultation');
       console.log(`Successfully started visit with patient ${patientId}`);
@@ -88,7 +88,11 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
 
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-4rem)] p-6 rounded-xl relative">
-      <PrescribeModal isOpen={isPrescribeOpen} onClose={() => setIsPrescribeOpen(false)} />
+      <PrescribeModal 
+        isOpen={isPrescribeOpen} 
+        onClose={() => setIsPrescribeOpen(false)} 
+        patient={selectedPatient}
+      />
       <OrderLabModal isOpen={isOrderLabOpen} onClose={() => setIsOrderLabOpen(false)} />
 
       {/* Header section with Global Search and Badges */}

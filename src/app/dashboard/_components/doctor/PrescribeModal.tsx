@@ -1,52 +1,69 @@
 import { useState } from 'react';
-import { X, Pill, History, Calendar, FileText } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Pill, History, Calendar, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { PatientQueueItem } from '@/hooks/useRealtimeQueue';
 
 interface PrescribeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  patient: PatientQueueItem | null;
 }
 
-// Mock history data
-const pastPrescriptions = [
-  {
-    id: '1',
-    date: '2026-05-10',
-    medication: 'Amoxicillin',
-    dosage: '500mg',
-    frequency: 'Twice daily',
-    status: 'Completed'
-  },
-  {
-    id: '2',
-    date: '2026-04-15',
-    medication: 'Lisinopril',
-    dosage: '10mg',
-    frequency: 'Once daily',
-    status: 'Active'
-  },
-  {
-    id: '3',
-    date: '2025-11-02',
-    medication: 'Ibuprofen',
-    dosage: '400mg',
-    frequency: 'As needed',
-    status: 'Completed'
-  }
-];
+export function PrescribeModal({ isOpen, onClose, patient }: PrescribeModalProps) {
+  const [medication, setMedication] = useState('');
+  const [dosage, setDosage] = useState('');
+  const [frequency, setFrequency] = useState('Once daily');
+  const [instructions, setInstructions] = useState('');
+  const queryClient = useQueryClient();
 
-export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['patientHistory', patient?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/patients/${patient?.id}/history`);
+      if (!res.ok) throw new Error('Failed to fetch history');
+      return res.json();
+    },
+    enabled: !!patient && isOpen,
+  });
+
+  const prescribeMutation = useMutation({
+    mutationFn: async (newPrescription: any) => {
+      const res = await fetch('/api/prescriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPrescription),
+      });
+      if (!res.ok) throw new Error('Failed to prescribe');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patientHistory', patient?.id] });
+      setMedication('');
+      setDosage('');
+      setInstructions('');
+      alert("Prescription added successfully!");
+      // Don't close so they can see it in history or write another
+    },
+    onError: () => {
+      alert("Failed to save prescription.");
+    }
+  });
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      onClose();
-      alert("Prescription added successfully!");
-    }, 1000);
+    if (!patient?.appointmentId) {
+      alert("Cannot prescribe: No active appointment selected.");
+      return;
+    }
+    prescribeMutation.mutate({
+      appointmentId: patient.appointmentId,
+      medicineName: medication,
+      dosage: dosage,
+      duration: frequency,
+      instructions: instructions
+    });
   };
 
   return (
@@ -59,7 +76,7 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
           <div className="flex items-center justify-between p-5 border-b border-solid border-gray-100 bg-gray-50/80">
             <h3 className="text-xl font-semibold text-gray-900 flex items-center">
               <Pill className="w-5 h-5 mr-2 text-teal-600" />
-              Prescription Management
+              Prescription Management {patient && `- ${patient.name}`}
             </h3>
             <button
               className="p-1 ml-auto bg-transparent border-0 text-gray-400 hover:text-gray-900 float-right text-3xl leading-none font-semibold outline-none focus:outline-none rounded-full hover:bg-gray-200 transition-colors"
@@ -84,6 +101,8 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
                   <input 
                     type="text" 
                     required
+                    value={medication}
+                    onChange={e => setMedication(e.target.value)}
                     placeholder="e.g. Amoxicillin" 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -95,13 +114,19 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
                     <input 
                       type="text" 
                       required
+                      value={dosage}
+                      onChange={e => setDosage(e.target.value)}
                       placeholder="e.g. 500mg" 
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                    <select 
+                      value={frequency}
+                      onChange={e => setFrequency(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    >
                       <option>Once daily</option>
                       <option>Twice daily</option>
                       <option>Three times daily</option>
@@ -114,6 +139,8 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (Optional)</label>
                   <textarea 
                     rows={3}
+                    value={instructions}
+                    onChange={e => setInstructions(e.target.value)}
                     placeholder="Take with food..." 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -123,9 +150,9 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
                   <button
                     className="bg-teal-600 text-white hover:bg-teal-700 font-medium px-5 py-2.5 rounded-md outline-none focus:outline-none transition-all duration-150 flex items-center shadow-sm w-full justify-center md:w-auto"
                     type="submit"
-                    disabled={loading}
+                    disabled={prescribeMutation.isPending || !patient?.appointmentId}
                   >
-                    {loading ? (
+                    {prescribeMutation.isPending ? (
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                     ) : (
                       <Pill className="w-4 h-4 mr-2" />
@@ -144,23 +171,44 @@ export function PrescribeModal({ isOpen, onClose }: PrescribeModalProps) {
               </h4>
               
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                {pastPrescriptions.map((rx) => (
-                  <div key={rx.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-teal-300 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <h5 className="font-semibold text-gray-900">{rx.medication} {rx.dosage}</h5>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${rx.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {rx.status}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600 mb-2 flex flex-col space-y-1">
-                      <span className="flex items-center"><FileText className="w-3.5 h-3.5 mr-1 text-gray-400" /> {rx.frequency}</span>
-                      <span className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" /> Prescribed on {new Date(rx.date).toLocaleDateString()}</span>
-                    </div>
-                    <button className="text-teal-600 text-xs font-medium hover:text-teal-800 transition-colors mt-1">
-                      + Re-prescribe
-                    </button>
+                {!patient ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No patient selected.</p>
+                ) : isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
                   </div>
-                ))}
+                ) : error ? (
+                  <div className="text-red-500 text-sm flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-2" /> Failed to load history
+                  </div>
+                ) : data?.history?.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No previous prescriptions found.</p>
+                ) : (
+                  data?.history.map((rx: any) => (
+                    <div key={rx.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-teal-300 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className="font-semibold text-gray-900">{rx.medication} {rx.dosage}</h5>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${rx.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {rx.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2 flex flex-col space-y-1">
+                        <span className="flex items-center"><FileText className="w-3.5 h-3.5 mr-1 text-gray-400" /> {rx.frequency}</span>
+                        <span className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" /> Prescribed on {new Date(rx.date).toLocaleDateString()}</span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setMedication(rx.medication);
+                          setDosage(rx.dosage);
+                          setFrequency(rx.frequency);
+                        }}
+                        className="text-teal-600 text-xs font-medium hover:text-teal-800 transition-colors mt-1"
+                      >
+                        + Re-prescribe
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

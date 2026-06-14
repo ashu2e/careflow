@@ -98,3 +98,30 @@ export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
 export const invoicesRelations = relations(invoices, ({ one }) => ({
   patient: one(patients, { fields: [invoices.patientId], references: [patients.id] }),
 }));
+
+export const tasks = pgTable('tasks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  type: text('type', { enum: ['Lab', 'Note', 'Prescription', 'Other'] }).default('Other').notNull(),
+  status: text('status', { enum: ['Pending', 'Completed'] }).default('Pending').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const messages = pgTable('messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  receiverId: uuid('receiver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  user: one(users, { fields: [tasks.userId], references: [users.id] }),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  sender: one(users, { fields: [messages.senderId], references: [users.id], relationName: 'sentMessages' }),
+  receiver: one(users, { fields: [messages.receiverId], references: [users.id], relationName: 'receivedMessages' }),
+}));

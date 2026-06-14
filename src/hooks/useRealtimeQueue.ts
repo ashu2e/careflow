@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export interface PatientQueueItem {
   id: string;
+  appointmentId?: string;
   name: string;
   age: number;
   gender: string;

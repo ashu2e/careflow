@@ -3,7 +3,7 @@ import { Activity, Thermometer, Heart, Play } from "lucide-react";
 
 interface NextPatientCardProps {
   patient: PatientQueueItem | null;
-  onStartVisit: (patientId: string) => void;
+  onStartVisit: (patientId: string, appointmentId: string) => void;
   isStarting: boolean;
 }
 
@@ -31,7 +31,7 @@ export function NextPatientCard({ patient, onStartVisit, isStarting }: NextPatie
           <p className="text-sm text-gray-500 mt-1">{patient.age} years &bull; {patient.gender} &bull; Token: {patient.token}</p>
         </div>
         <button
-          onClick={() => onStartVisit(patient.id)}
+          onClick={() => patient.appointmentId && onStartVisit(patient.id, patient.appointmentId)}
           disabled={isStarting}
           className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-md font-medium transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-70 transform hover:scale-105"
         >

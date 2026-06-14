@@ -1,18 +1,38 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/db";
+import { patients, users } from "@/db/schema";
+import { eq, ilike } from "drizzle-orm";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q');
-  
-  if (!query || query.length < 2) {
-    return NextResponse.json({ results: [] });
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-  // Mock search results
-  return NextResponse.json({
-    results: [
-      { id: 'p1', name: 'Alex Turner', dob: '1980-05-12' },
-      { id: 'p2', name: 'Alexa Siri', dob: '1992-11-20' }
-    ]
-  });
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q');
+    
+    if (!query || query.length < 2) {
+      return NextResponse.json({ results: [] });
+    }
+
+    const searchResults = await db
+      .select({
+        id: patients.id,
+        name: users.fullName,
+        dob: patients.dob,
+      })
+      .from(patients)
+      .innerJoin(users, eq(patients.userId, users.id))
+      .where(ilike(users.fullName, `%${query}%`))
+      .limit(10);
+
+    return NextResponse.json({ results: searchResults });
+
+  } catch (error) {
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
 }
