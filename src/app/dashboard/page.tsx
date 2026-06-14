@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { appointments, patients, doctors, users } from "@/db/schema";
+import { appointments, patients, doctors, users, staff, invoices } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 // Specific Dashboard Views
@@ -66,7 +66,28 @@ export default async function DashboardPage() {
   }
 
   if (role === "Admin") {
-    return <AdminDashboard />;
+    const allPatients = await db.query.patients.findMany();
+    const allDoctors = await db.query.doctors.findMany();
+    const allStaff = await db.query.staff.findMany();
+    const allAppointments = await db.query.appointments.findMany();
+    const allInvoices = await db.query.invoices.findMany();
+
+    const stats = {
+      totalPatients: allPatients.length,
+      totalDoctors: allDoctors.length,
+      totalStaff: allStaff.length,
+      appointments: {
+        scheduled: allAppointments.filter(a => a.status === 'Scheduled').length,
+        completed: allAppointments.filter(a => a.status === 'Completed').length,
+        cancelled: allAppointments.filter(a => a.status === 'Cancelled').length,
+      },
+      revenue: {
+        paid: allInvoices.filter(i => i.paymentStatus === 'Paid').reduce((acc, i) => acc + i.amount, 0),
+        pending: allInvoices.filter(i => i.paymentStatus === 'Pending').reduce((acc, i) => acc + i.amount, 0),
+      }
+    };
+
+    return <AdminDashboard stats={stats} />;
   }
 
   if (role === "Receptionist") {
