@@ -125,3 +125,19 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   sender: one(users, { fields: [messages.senderId], references: [users.id], relationName: 'sentMessages' }),
   receiver: one(users, { fields: [messages.receiverId], references: [users.id], relationName: 'receivedMessages' }),
 }));
+
+export const labOrders = pgTable('lab_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  patientId: uuid('patient_id').notNull().references(() => patients.id, { onDelete: 'cascade' }),
+  doctorId: uuid('doctor_id').notNull().references(() => doctors.id, { onDelete: 'cascade' }),
+  testPanel: text('test_panel').notNull(),
+  priority: text('priority', { enum: ['routine', 'stat'] }).default('routine').notNull(),
+  clinicalNotes: text('clinical_notes'),
+  status: text('status', { enum: ['Pending', 'Completed', 'Cancelled'] }).default('Pending').notNull(),
+  orderedAt: timestamp('ordered_at').defaultNow().notNull(),
+});
+
+export const labOrdersRelations = relations(labOrders, ({ one }) => ({
+  patient: one(patients, { fields: [labOrders.patientId], references: [patients.id] }),
+  doctor: one(doctors, { fields: [labOrders.doctorId], references: [doctors.id] }),
+}));

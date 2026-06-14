@@ -93,7 +93,11 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
         onClose={() => setIsPrescribeOpen(false)} 
         patient={selectedPatient}
       />
-      <OrderLabModal isOpen={isOrderLabOpen} onClose={() => setIsOrderLabOpen(false)} />
+      <OrderLabModal 
+        isOpen={isOrderLabOpen} 
+        onClose={() => setIsOrderLabOpen(false)} 
+        patient={selectedPatient}
+      />
 
       {/* Header section with Global Search and Badges */}
       <div className="flex justify-between items-center mb-8">
