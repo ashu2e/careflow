@@ -9,12 +9,17 @@ import { GlobalSearch } from './doctor/GlobalSearch';
 import { PendingTasksBadge } from './doctor/PendingTasksBadge';
 import { UnreadMessagesPreview } from './doctor/UnreadMessagesPreview';
 import { ActionButtons } from './doctor/ActionButtons';
+import { PrescribeModal } from './doctor/PrescribeModal';
+import { OrderLabModal } from './doctor/OrderLabModal';
 import { useDoctorShortcuts } from '@/hooks/useDoctorShortcuts';
 import { PatientQueueItem, QueueResponse } from '@/hooks/useRealtimeQueue';
 
 export default function DoctorDashboard({ doctor, appointments, userName }: { doctor: any, appointments: any[], userName?: string }) {
   const [selectedPatient, setSelectedPatient] = useState<PatientQueueItem | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [isPrescribeOpen, setIsPrescribeOpen] = useState(false);
+  const [isOrderLabOpen, setIsOrderLabOpen] = useState(false);
+  
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -62,10 +67,11 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
       console.log("Ended consultation via shortcut");
     },
     onPrescribe: () => {
-      console.log("Opened prescription modal via shortcut");
+      setIsPrescribeOpen(true);
     },
     onCloseModal: () => {
-      console.log("Closed modals via shortcut");
+      setIsPrescribeOpen(false);
+      setIsOrderLabOpen(false);
     },
     onSearchFocus: () => {
       searchInputRef.current?.focus();
@@ -81,7 +87,10 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
   }, [queryClient, selectedPatient]);
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-4rem)] p-6 rounded-xl">
+    <div className="bg-gray-50 min-h-[calc(100vh-4rem)] p-6 rounded-xl relative">
+      <PrescribeModal isOpen={isPrescribeOpen} onClose={() => setIsPrescribeOpen(false)} />
+      <OrderLabModal isOpen={isOrderLabOpen} onClose={() => setIsOrderLabOpen(false)} />
+
       {/* Header section with Global Search and Badges */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -125,8 +134,8 @@ export default function DoctorDashboard({ doctor, appointments, userName }: { do
         {/* Right Column: Actions */}
         <div className="col-span-12 lg:col-span-2 flex flex-col space-y-6">
           <ActionButtons 
-            onPrescribe={() => console.log('Prescribe modal opened')}
-            onOrderLab={() => console.log('Lab order modal opened')}
+            onPrescribe={() => setIsPrescribeOpen(true)}
+            onOrderLab={() => setIsOrderLabOpen(true)}
             onEndShift={() => {
               if(confirm("Are you sure you want to end your shift?")) {
                 console.log("Ended shift");
