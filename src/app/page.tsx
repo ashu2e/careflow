@@ -77,6 +77,44 @@ export default function Home() {
             </div>
           </div>
         </section>
+        {/* Doctors Section */}
+        <section id="doctors" className="py-20 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold text-gray-900">Our Top Doctors</h2>
+              <p className="mt-4 text-gray-600 max-w-2xl mx-auto">Meet our team of experienced professionals dedicated to your health.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Doctor 1 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-blue-100 rounded-full mb-4 flex items-center justify-center text-blue-600">
+                  <span className="font-bold text-xl">DS</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Dr. Sarah Smith</h3>
+                <p className="text-blue-600 font-medium mb-2">Cardiology</p>
+                <p className="text-gray-500 text-sm">15+ years of experience in cardiovascular health.</p>
+              </div>
+              {/* Doctor 2 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-blue-100 rounded-full mb-4 flex items-center justify-center text-blue-600">
+                  <span className="font-bold text-xl">JW</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Dr. James Wilson</h3>
+                <p className="text-blue-600 font-medium mb-2">Neurology</p>
+                <p className="text-gray-500 text-sm">Specialist in neurological disorders and treatments.</p>
+              </div>
+              {/* Doctor 3 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-blue-100 rounded-full mb-4 flex items-center justify-center text-blue-600">
+                  <span className="font-bold text-xl">EC</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Dr. Emily Chen</h3>
+                <p className="text-blue-600 font-medium mb-2">Pediatrics</p>
+                <p className="text-gray-500 text-sm">Dedicated to providing compassionate care for children.</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <Footer />
