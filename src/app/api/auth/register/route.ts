@@ -23,28 +23,23 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Run transaction
-    const newUser = await db.transaction(async (tx) => {
-      const [insertedUser] = await tx.insert(users).values({
-        email,
-        passwordHash,
-        role: "Patient",
-        fullName,
-        phone,
-      }).returning();
+    const [insertedUser] = await db.insert(users).values({
+      email,
+      passwordHash,
+      role: "Patient",
+      fullName,
+      phone,
+    }).returning();
 
-      await tx.insert(patients).values({
-        userId: insertedUser.id,
-        dob,
-        gender: gender as "Male" | "Female" | "Other",
-        address,
-        emergencyContact,
-      });
-
-      return insertedUser;
+    await db.insert(patients).values({
+      userId: insertedUser.id,
+      dob,
+      gender: gender as "Male" | "Female" | "Other",
+      address,
+      emergencyContact,
     });
 
-    return NextResponse.json({ message: "User registered successfully", userId: newUser.id }, { status: 201 });
+    return NextResponse.json({ message: "User registered successfully", userId: insertedUser.id }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });

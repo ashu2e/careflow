@@ -30,34 +30,29 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Run transaction
-    const newUser = await db.transaction(async (tx) => {
-      const [insertedUser] = await tx.insert(users).values({
-        email,
-        passwordHash,
-        role: role as "Admin" | "Doctor" | "Receptionist" | "Pharmacist",
-        fullName,
-        phone,
-      }).returning();
+    const [insertedUser] = await db.insert(users).values({
+      email,
+      passwordHash,
+      role: role as "Admin" | "Doctor" | "Receptionist" | "Pharmacist",
+      fullName,
+      phone,
+    }).returning();
 
-      if (role === "Doctor") {
-        await tx.insert(doctors).values({
-          userId: insertedUser.id,
-          specialization,
-          fee: parseInt(fee, 10),
-        });
-      } else {
-        await tx.insert(staff).values({
-          userId: insertedUser.id,
-          role: role as "Admin" | "Receptionist" | "Pharmacist",
-          department,
-        });
-      }
+    if (role === "Doctor") {
+      await db.insert(doctors).values({
+        userId: insertedUser.id,
+        specialization,
+        fee: parseInt(fee, 10),
+      });
+    } else {
+      await db.insert(staff).values({
+        userId: insertedUser.id,
+        role: role as "Admin" | "Receptionist" | "Pharmacist",
+        department,
+      });
+    }
 
-      return insertedUser;
-    });
-
-    return NextResponse.json({ message: "Staff registered successfully", userId: newUser.id }, { status: 201 });
+    return NextResponse.json({ message: "Staff registered successfully", userId: insertedUser.id }, { status: 201 });
   } catch (error) {
     console.error("Staff registration error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
